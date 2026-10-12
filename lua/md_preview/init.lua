@@ -12,7 +12,7 @@ function M.run()
 		vim.notify("Render: this buffer isn't a saved file", vim.log.levels.WARN)
 		return
 	end
-	local is_md = string.match(file, ".*.[md,puml]")
+	local is_md = file:match("%.md$") or file:match("%.puml$")
 	if is_md then
 		vim.cmd("write")
 		vim.notify(file .. " is a Markdown", vim.log.levels.DEBUG)

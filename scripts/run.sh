@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 
 set -euo pipefail
 
@@ -7,11 +7,22 @@ filename=${1%.*}
 full_file_name=${1}
 
 echo "start: file: ${1} full_file_name: ${full_file_name}"
+
+# Open a file with the OS default viewer: `open` on macOS, `xdg-open` on Linux.
+open_file() {
+  if [[ "$(uname)" == "Darwin" ]]; then
+    open "$1"
+  else
+    # Detach so the viewer doesn't keep Neovim's vim.system():wait() blocked
+    nohup xdg-open "$1" >/dev/null 2>&1 &
+  fi
+}
+
 render_plantum() {
   echo "render plantuml"
   plantuml ${full_file_name} --png
   clear
-  open ${filename}.png
+  open_file "${filename}.png"
 }
 
 render_marp() {
@@ -19,9 +30,12 @@ render_marp() {
   basedir=$(pwd)
   #  parent_dir=$(dirname $full_file_name)
   #  cd $parent_dir
-  marp --pdf --allow-local-files -o "$tmp_file" "${full_file_name}"
-  cd $basedir
-  [[ $? -eq 0 ]] && open $tmp_file || exit 1
+  if marp --pdf --allow-local-files -o "$tmp_file" "${full_file_name}"; then
+    cd $basedir
+    open_file "$tmp_file"
+  else
+    exit 1
+  fi
 }
 
 render_pandoc() {
@@ -30,7 +44,7 @@ render_pandoc() {
   parent_dir=$(dirname $full_file_name)
   cd $parent_dir
   pandoc ${filename}.${extension} -o ${tmp_file} &&
-    open ${tmp_file}
+    open_file "${tmp_file}"
 }
 
 render_openapi() {
@@ -39,7 +53,7 @@ render_openapi() {
     basedir=$(pwd)
     cp $1 /tmp
     cd /tmp
-    open /tmp/docs/index.html
+    open_file /tmp/docs/index.html
     openapi-generate $1
     return
   else
